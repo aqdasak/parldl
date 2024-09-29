@@ -53,6 +53,7 @@ def download_images(urls: list[str], output_dir: Path, *, max_attempts, max_work
         success_count = 0
         fail_count = 0
         total_urls = len(urls)
+        remaining_urls = total_urls
 
         # Use a deque for maintaining order and allowing duplicates for retries
         pending_urls = deque(urls)
@@ -75,6 +76,7 @@ def download_images(urls: list[str], output_dir: Path, *, max_attempts, max_work
 
                     if success:
                         success_count += 1
+                        remaining_urls -= 1
                     elif (
                         error.startswith("HTTP 5")
                         or error.startswith("HTTP 408")
@@ -87,10 +89,11 @@ def download_images(urls: list[str], output_dir: Path, *, max_attempts, max_work
                     else:
                         failed_forever_urls.append(url)
                         fail_count += 1
+                        remaining_urls -= 1
 
                 print(
                     f" Downloaded: {success_count}/{total_urls}"
-                    f" | Remaining: {len(future_to_url)}"
+                    f" | Remaining: {remaining_urls}"
                     f" | Failed: {fail_count}",
                     "        ",
                     end="\r",
@@ -98,7 +101,7 @@ def download_images(urls: list[str], output_dir: Path, *, max_attempts, max_work
                 )
 
                 # Short sleep to prevent CPU spinning
-                time.sleep(0.2)
+                time.sleep(0.25)
 
         return failed_forever_urls
 
