@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "parldl"
+version = "0.1.0"
+description = "Download files parallely from a list of URLs in a file"
+authors = ["Aqdas Ahmad Khan <aqdasak@gmail.com>"]
+readme = "README.md"
+
+keywords = ['python', 'parallel', 'download', 'urls']
+homepage = "https://github.com/aqdasak/parldl"
+repository = "https://github.com/aqdasak/parldl"
+license = "MIT"
+
+[tool.poetry.scripts]
+parldl = "parldl.__main__:main"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+click = "^8.1.7"
+requests = "^2.32.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
