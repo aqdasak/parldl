@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "parldl"
-version = "0.1.0"
+version = "0.2.0"
 description = "Download files parallely from a list of URLs in a file"
 authors = ["Aqdas Ahmad Khan <aqdasak@gmail.com>"]
 readme = "README.md"

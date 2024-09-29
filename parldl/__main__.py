@@ -21,11 +21,17 @@ def download_image(url: str, output_dir: Path) -> tuple[Success, Error]:
         None if the download was successful, an error message otherwise.
     """
 
-    filename = Path(urlparse(url).path).name
+    # Get the filename from the URL
+    parsed_url = urlparse(url)
+    filename = Path(parsed_url.path).name
+    # If the filename is empty, use the domain name
+    if not filename:
+        filename = f"{parsed_url.netloc}.html"
+
     filepath = output_dir / filename
 
     try:
-        response = requests.get(url, timeout=30)  # Add a timeout
+        response = requests.get(url, timeout=30)
         if response.status_code == 200:
             filepath.write_bytes(response.content)
             return True, None
@@ -57,7 +63,7 @@ def download_images(urls: list[str], output_dir: Path, *, max_attempts, max_work
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             while pending_urls or future_to_url:
                 # Submit new tasks for pending URLs
-                while len(future_to_url) < max_workers and pending_urls:
+                while pending_urls:
                     url = pending_urls.popleft()
                     future = executor.submit(download_image, url, output_dir)
                     future_to_url[future] = url
@@ -71,11 +77,11 @@ def download_images(urls: list[str], output_dir: Path, *, max_attempts, max_work
                         success_count += 1
                     elif (
                         error.startswith("HTTP 5")
-                        or
-                        # Only HTTP 5xx errors are retried
-                        not error.startswith("HTTP")
-                        and url_to_attempts[url] < max_attempts
-                    ):
+                        or error.startswith("HTTP 408")
+                        or error.startswith("HTTP 429")
+                        # Only HTTP 5xx, 408, and 429 errors are retried
+                        or not error.startswith("HTTP")
+                    ) and url_to_attempts[url] < max_attempts:
                         pending_urls.append(url)
                         url_to_attempts[url] += 1
                     else:
@@ -84,8 +90,7 @@ def download_images(urls: list[str], output_dir: Path, *, max_attempts, max_work
 
                 print(
                     f" Downloaded: {success_count}/{total_urls}"
-                    f" | Processing: {len(future_to_url)}"
-                    f" | Pending: {len(pending_urls)}"
+                    f" | Remaining: {len(future_to_url)}"
                     f" | Failed: {fail_count}",
                     "        ",
                     end="\r",
@@ -101,16 +106,10 @@ def download_images(urls: list[str], output_dir: Path, *, max_attempts, max_work
     output_dir.mkdir(parents=True, exist_ok=True)
     failed_urls = _download_images(urls)
 
-    fail_count = len(failed_urls)
-    success_count = len(urls) - fail_count
-
-    if success_count > 0:
-        print(f"\n\n Successfully downloaded: {success_count}")
-
-    if fail_count > 0:
-        print(f" Failed to download: {fail_count}")
-        print(" Failed:")
-        print("", "\n ".join(failed_urls))
+    print("\n")
+    if failed_urls:
+        print(" FAILED TO DOWNLOAD:")
+        print("", *failed_urls, sep="\n ")
 
 
 @click.command()
